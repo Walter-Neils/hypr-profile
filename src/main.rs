@@ -108,14 +108,14 @@ fn command_line_args() -> clap::ArgMatches {
     Command::new("hypr-profile")
         .subcommand(
             Command::new("apply")
-                .arg(Arg::new("target").required(true))
+                .arg(Arg::new("target").required(true).help("The target profile to apply, stored in $HYPR_PROFILES_DIR"))
                 .arg(
                     Arg::new("persist")
                         .long("persist")
                         .short('p')
-                        .action(ArgAction::SetTrue),
+                        .action(ArgAction::SetTrue).help("If applied, profile values will be written to $HYPR_PERSIST_PROFILE_FILE"),
                 )
-                .arg(Arg::new("append").short('a').action(ArgAction::SetTrue)),
+                .arg(Arg::new("append").short('a').action(ArgAction::SetTrue).help("If applied, profile values will be APPENDED to $HYPR_PERSIST_PROFILE_FILE. Only valid when --persist is applied.")),
         )
         .subcommand(Command::new("list"))
         .get_matches()
