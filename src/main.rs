@@ -19,7 +19,30 @@ fn main() {
         }
         Some(("apply", matches)) => subcommand_apply(&matches),
         Some(("list", matches)) => subcommand_list(&matches),
+        Some(("persistent", matches)) => match matches.subcommand() {
+            None => panic!("Unhandled"),
+            Some(("show", matches)) => subcommand_persistent_show(matches),
+            Some(("clear", matches)) => subcommand_persistent_clear(matches),
+            Some((&_, _)) => panic!("Unhandled"),
+        },
         Some((&_, _)) => panic!("Unhandled"),
+    }
+}
+
+fn subcommand_persistent_clear(_matches: &ArgMatches) {
+    match std::fs::remove_file(get_hypr_profile_persistent_profile()) {
+        Err(_) => {
+            error!("Failed to clear persistent profile");
+            exit(1);
+        }
+        Ok(_) => println!("Persistent profile cleared"),
+    }
+}
+
+fn subcommand_persistent_show(_matches: &ArgMatches) {
+    match std::fs::read_to_string(get_hypr_profile_persistent_profile()) {
+        Err(_) => error!("Failed to open persistent profile file"),
+        Ok(content) => println!("{}", content),
     }
 }
 
@@ -135,5 +158,9 @@ fn command_line_args() -> clap::ArgMatches {
                 .arg(Arg::new("append").short('a').action(ArgAction::SetTrue).help("If applied, profile values will be APPENDED to $HYPR_PERSIST_PROFILE_FILE. Only valid when --persist is applied.")),
         )
         .subcommand(Command::new("list"))
+        .subcommand(Command::new("persistent")
+            .subcommand(Command::new("show"))
+            .subcommand(Command::new("clear"))
+            )
         .get_matches()
 }
