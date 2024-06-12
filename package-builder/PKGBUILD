@@ -1,0 +1,12 @@
+pkgname="hypr-profile"
+pkgver="1.0.0"
+pkgrel="1"
+pkgdec="Apply partial Hyprland configuration profiles on the fly"
+arch=("x86_64")
+source=("hypr-profile")
+sha512sums=("SKIP")
+package() {
+  mkdir -p "${pkgdir}/usr/bin"
+  cp "${srcdir}/hypr-profile" "${pkgdir}/usr/bin/hypr-profile"
+  chmod +x "${pkgdir}/usr/bin/hypr-profile"
+}
