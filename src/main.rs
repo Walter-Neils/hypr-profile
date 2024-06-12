@@ -87,17 +87,17 @@ fn subcommand_apply(matches: &ArgMatches) {
         }
     };
     for var in profile_vars {
-        if var.unscoped_key == "env" {
+        if var.key == "env" {
             warn!("'env' directives have no effect");
         }
-        match Keyword::set(&var.unscoped_key, var.value.clone()) {
+        match Keyword::set(&var.key, var.value.clone()) {
             Ok(_) => (),
-            Err(_) => error!("Failed to apply value for keyword '{}'", &var.unscoped_key),
+            Err(_) => error!("Failed to apply value for keyword '{}'", &var.key),
         }
         match persistant_output_handle {
             None => (),
             Some(ref mut handle) => {
-                if let Err(_) = writeln!(handle, "{}={}", var.unscoped_key, var.value) {
+                if let Err(_) = writeln!(handle, "{}={}", var.key, var.value) {
                     error!("Failed to write to persistant profile!");
                 }
             }

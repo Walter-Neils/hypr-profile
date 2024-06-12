@@ -1,8 +1,8 @@
-use std::path::PathBuf;
 use std::fs;
+use std::path::PathBuf;
 
 pub struct HyprConfigObject {
-    pub unscoped_key: String,
+    pub key: String,
     pub value: String,
 }
 
@@ -44,7 +44,7 @@ impl HyprConfigObject {
                 full_key
             };
             result.push(HyprConfigObject {
-                unscoped_key: full_key,
+                key: full_key,
                 value: value.to_owned(),
             })
         }
