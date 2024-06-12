@@ -1,11 +1,11 @@
 use anyhow::{anyhow, Result};
-use clap::{Arg, Command};
+use clap::{Arg, ArgAction, Command};
 use hyprland::keyword::Keyword;
 use log::{debug, error, warn};
-use std::fs;
+use std::fs::{self, OpenOptions};
+use std::io::prelude::*;
 use std::path::PathBuf;
 use std::process::exit;
-
 struct HyprConfigObject {
     unscoped_key: String,
     value: String,
@@ -94,9 +94,29 @@ fn get_profiles_directory() -> std::path::PathBuf {
     .into()
 }
 
+fn get_hypr_profile_persistent_profile() -> std::path::PathBuf {
+    match std::env::var("HYPR_PERSIST_PROFILE_FILE") {
+        Ok(x) => x.to_owned(),
+        Err(_) => {
+            std::env::var("HOME").unwrap() + "/.config/hypr/profiles/.hypr_persistant_profile.conf"
+        }
+    }
+    .into()
+}
+
 fn command_line_args() -> clap::ArgMatches {
     Command::new("hypr-profile")
-        .subcommand(Command::new("apply").arg(Arg::new("target")))
+        .subcommand(
+            Command::new("apply")
+                .arg(Arg::new("target").required(true))
+                .arg(
+                    Arg::new("persist")
+                        .long("persist")
+                        .short('p')
+                        .action(ArgAction::SetTrue),
+                )
+                .arg(Arg::new("append").short('a').action(ArgAction::SetTrue)),
+        )
         .subcommand(Command::new("list"))
         .get_matches()
 }
@@ -111,6 +131,30 @@ fn main() {
             exit(1);
         }
         Some(("apply", matches)) => {
+            let mut persistant_output_handle = {
+                if matches.get_one::<bool>("persist").is_some() {
+                    let append = {
+                        match matches.get_one::<bool>("append") {
+                            None => false,
+                            Some(x) => *x,
+                        }
+                    };
+                    let truncate = !append;
+                    match OpenOptions::new()
+                        .append(append)
+                        .truncate(truncate)
+                        .write(true)
+                        .create(true)
+                        .open(get_hypr_profile_persistent_profile())
+                    {
+                        Ok(x) => Some(x),
+                        Err(_) => None,
+                    }
+                } else {
+                    None
+                }
+            };
+
             let target = matches.get_one::<String>("target").unwrap();
             let profile_vars =
                 match load_config_from_profile(ProfileIdentifier::ByName(target.to_owned())) {
@@ -121,7 +165,21 @@ fn main() {
                     }
                 };
             for var in profile_vars {
-                Keyword::set(var.unscoped_key, var.value).unwrap();
+                if var.unscoped_key == "env" {
+                    warn!("'env' directives have no effect");
+                }
+                match Keyword::set(&var.unscoped_key, var.value.clone()) {
+                    Ok(_) => (),
+                    Err(_) => error!("Failed to apply value for keyword '{}'", &var.unscoped_key),
+                }
+                match persistant_output_handle {
+                    None => (),
+                    Some(ref mut handle) => {
+                        if let Err(_) = writeln!(handle, "{}={}", var.unscoped_key, var.value) {
+                            error!("Failed to write to persistant profile!");
+                        }
+                    }
+                }
             }
         }
         Some(("list", _)) => {
@@ -133,10 +191,6 @@ fn main() {
                         "Cannot read profiles directory ({})",
                         profiles_directory.to_str().unwrap()
                     );
-                    // println!(
-                    //     "Cannot read profiles directory ({})",
-                    //     profiles_directory.to_str().unwrap()
-                    // );
                     exit(1);
                 }
             };
@@ -146,6 +200,11 @@ fn main() {
                     if !full_file_name.contains(".conf") {
                         continue;
                     }
+
+                    if full_file_name.starts_with(".") {
+                        continue; // Dot files are hidden
+                    }
+
                     let profile_name = full_file_name.replace(".conf", "");
                     println!("{}", profile_name);
                 }
