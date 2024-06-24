@@ -221,6 +221,7 @@ dependencies = [
  "env_logger",
  "hyprland",
  "log",
+ "regex",
 ]
 
 [[package]]

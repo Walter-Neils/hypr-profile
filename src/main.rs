@@ -1,3 +1,4 @@
+mod environment_string_replace;
 mod hypr_config;
 mod hypr_locations;
 use anyhow::{anyhow, Result};
