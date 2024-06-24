@@ -5,6 +5,7 @@ use anyhow::{anyhow, Result};
 use clap::{Arg, ArgAction, ArgMatches, Command};
 use hypr_config::*;
 use hypr_locations::*;
+use hyprland::ctl::Color;
 use hyprland::keyword::Keyword;
 use log::{error, warn};
 use std::fs::OpenOptions;
@@ -26,8 +27,13 @@ fn main() {
             Some(("clear", matches)) => subcommand_persistent_clear(matches),
             Some((&_, _)) => panic!("Unhandled"),
         },
+        Some(("dismiss-error", matches)) => subcommand_dismiss_error(matches),
         Some((&_, _)) => panic!("Unhandled"),
     }
+}
+
+fn subcommand_dismiss_error(_matches: &ArgMatches) {
+    let _ = hyprland::ctl::set_error::call(Color::new(0, 0, 0, 0), "disable".to_owned());
 }
 
 fn subcommand_persistent_clear(_matches: &ArgMatches) {
@@ -163,5 +169,6 @@ fn command_line_args() -> clap::ArgMatches {
             .subcommand(Command::new("show"))
             .subcommand(Command::new("clear"))
             )
+        .subcommand(Command::new("dismiss-error"))
         .get_matches()
 }
